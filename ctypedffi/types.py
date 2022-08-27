@@ -121,7 +121,7 @@ class FuncPointer(Generic[P, R]):
     argtypes: Sequence[type[CDataBase]]
     errcheck: Callable[[type[CDataBase] | None, FuncPointer[P, R], tuple[CDataBase, ...]], CDataBase]
 
-    def __new__(cls: type[Self], func: Callable[P, R]) -> Self:
+    def __new__(cls: type[Self], func: c_void_p | Callable[P, R]) -> Self:
         ...
 
     def __call__(self, *args: P.args, **kwargs: P.kwargs) -> R:

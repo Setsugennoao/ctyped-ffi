@@ -3,11 +3,11 @@ import ctypes
 from ctypes import (
     POINTER, PYFUNCTYPE, Array, Structure, _SimpleCData, addressof, c_char, c_char_p, c_double, c_float, c_int, c_int8,
     c_int16, c_int32, c_int64, c_longlong, c_short, c_size_t, c_ssize_t, c_ubyte, c_uint, c_uint8, c_uint16, c_uint32,
-    c_uint64, c_ulonglong, c_ushort, c_void_p, memmove, py_object, pythonapi, sizeof, string_at
-)
+    c_uint64, c_ulonglong, c_ushort, c_void_p, memmove, py_object as py_object_t, pythonapi, sizeof, string_at,
+    CFUNCTYPE)
 from functools import lru_cache
-from types import MappingProxyType
-from typing import TYPE_CHECKING, TypeVar, cast
+from types import FunctionType, MappingProxyType
+from typing import TYPE_CHECKING, Any, TypeVar, cast
 
 from .string import String
 from .types import C_T_CDB, CDataBase
@@ -35,6 +35,8 @@ __all__ = [
 
     'c_size_t', 'c_ptrdiff_t', 'c_intptr_t',
 
+    'py_object_t', 'py_object', 'CFUNCTYPE', 'FuncPointerType',
+
     'PyTypeObject', 'PyObject', 'PyVarObject', 'PyDictObject', 'StgDictObject',
 
     'mappingproxyobject', 'ffi_type',
@@ -57,6 +59,11 @@ c_uint64_t = c_ulonglong
 if TYPE_CHECKING:
     c_ptrdiff_t: type[_SimpleCData[int]]
     c_intptr_t: type[_SimpleCData[int]]
+    from ctypes import _FuncPointer as FuncPointerType
+    py_object = py_object_t[Any]
+else:
+    FuncPointerType = FunctionType
+    py_object = py_object_t
 
 
 _int_types = (c_int16, c_int32, c_int64)
@@ -239,11 +246,11 @@ def make_callback_returnable(ctype: CDataBase) -> C_T_CBF:
             )
 
     @GETFUNC  # type: ignore
-    def getfunc(ptr: c_void_p, size: c_size_t) -> py_object:  # type: ignore
+    def getfunc(ptr: c_void_p, size: c_size_t) -> py_object:
         return ctype.from_buffer_copy(string_at(ptr, _check_size('getfunc', ctype, size)))  # type: ignore
 
     @SETFUNC  # type: ignore
-    def setfunc(ptr: c_void_p, value: py_object, size: c_size_t) -> c_void_p:  # type: ignore
+    def setfunc(ptr: c_void_p, value: py_object, size: c_size_t) -> c_void_p:
         memmove(ptr, addressof(value), _check_size('setfunc', ctype, size))
         pythonapi.Py_IncRef(None_ptr)
 
