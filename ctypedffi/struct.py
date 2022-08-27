@@ -36,16 +36,13 @@ class StructMeta(StructMetaBase):
         return StructMetaDict(__slots__=[], _fields_=[])
 
 
-C_STB = TypeVar('C_STB', bound=StructMeta)
-
-
 class StructureBase(Generic[Self]):
     if TYPE_CHECKING:
         def __init__(self: type[Self]) -> None:  # type: ignore
             ...
 
     @staticmethod
-    def annotate(cls: C_STB) -> StructureBase[C_STB]:
+    def annotate(cls: C_STB) -> C_STB:
         if Struct not in cls.mro():
             raise ValueError(
                 'Struct.annotate: The annotated class must inherit from Struct!'
@@ -63,6 +60,9 @@ class StructureBase(Generic[Self]):
 
 class Struct(StructureBase, Structure, metaclass=StructMeta):  # type: ignore
     ...
+
+
+C_STB = TypeVar('C_STB', bound=StructMeta)
 
 
 class OpaqueStruct(Struct):
