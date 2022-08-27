@@ -20,11 +20,11 @@ class LibraryMetaDict(MetaClassDictBase):
 
     def _setitem_(self, name: str, value: Any, /) -> None:
         if callable(value):
-            value, name, arg_types, res_type, cconv = normalize_cfunc(value, name, self.def_cconv)
+            norm = normalize_cfunc(value, name, self.def_cconv)
 
-            value = self.lib.get(name, cconv.value)
-            value.argtypes = arg_types
-            value.restype = res_type
+            value = self.lib.get(norm.name, norm.cconv.value)
+            value.argtypes = norm.args_types
+            value.restype = norm.res_type
 
         return dict.__setitem__(self, name, value)
 

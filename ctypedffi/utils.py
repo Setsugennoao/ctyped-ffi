@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from ctypes import CFUNCTYPE
+from dataclasses import dataclass
 from inspect import get_annotations
 from types import NoneType
 from typing import Any, Callable, cast, overload
@@ -39,30 +40,67 @@ def ord_if_char(value: T) -> T | int:
     return value
 
 
+@dataclass
+class NormalizedFunction:
+    func: F
+    name: str
+    name_raw: str | None
+    args_types: list[type[CDataBase]]
+    args_types_raw: list[type[CDataBase]] | None
+    res_type: type[CDataBase]
+    res_type_raw: type[CDataBase] | None
+    cconv: CallingConvention
+
+
 def normalize_cfunc(
-    func: F, name: str, def_cconv: CallingConvention = CallingConvention.C
-) -> tuple[F, str, list[type[CDataBase]], type[CDataBase], CallingConvention]:
-    cconv = CallingConvention(
-        func.__dict__.get('__ctdffi_cconv__', def_cconv)
-    )
-
-    arguments = get_annotations(func, eval_str=True)
-
-    return_type = arguments.pop('return')
-
-    res_type = Pointer.normalize(return_type)
-    args_types = [Pointer.normalize(val) for val in arguments.values()]
-
-    return func, name, args_types, res_type, cconv
-
-
-def as_cfunc(func: Callable[P, R], name: str | None = None) -> type[FuncPointer[P, R]]:
+    func: F, name: str | None = None, def_cconv: CallingConvention = CallingConvention.C
+) -> NormalizedFunction:
     if name is None:
         name = func.__name__
 
-    _, _, arg_types, res_type, _ = normalize_cfunc(func, name)
+    arguments = get_annotations(func, eval_str=True)
+    return_type = arguments.pop('return')
+    args_types_raw = list(arguments.values())
 
-    return CFUNCTYPE(res_type, *arg_types)  # type: ignore
+    oname = func.__dict__.get('__ctdffi_oname__', None)
+    cconv = func.__dict__.get('__ctdffi_cconv__', def_cconv)
+
+    res_type, *args_types = [Pointer.normalize(val) for val in (return_type, *args_types_raw)]
+
+    ores_type = func.__dict__.get('__ctdffi_ores_type__', None)
+    oargs_types = func.__dict__.get('__ctdffi_oargs_types__', None)
+
+    if ores_type is not None:
+        ores_type = Pointer.normalize(ores_type)
+
+    if oargs_types is not None:
+        oargs_types = [Pointer.normalize(val) for val in oargs_types]
+
+    return NormalizedFunction(func, name, oname, args_types, oargs_types, res_type, ores_type, cconv)
+
+
+def as_cfunc(func: Callable[P, R], name: str | None = None) -> type[FuncPointer[P, R]]:
+    norm = normalize_cfunc(func, name)
+
+    return CFUNCTYPE(norm.res_type, *norm.args_types)  # type: ignore
+
+
+def override(
+    name: str | None = None, args_types: list[CDataBase] | None = None, res_type: CDataBase | None = None
+) -> Callable[[F], F]:
+    def wrapper(func: F) -> F:
+        if name is not None:
+            func.__setattr__('__ctdffi_oname__', name)
+
+        if args_types is not None:
+            func.__setattr__('__ctdffi_oargs_types__', args_types)
+
+        if res_type is not None:
+            func.__setattr__('__ctdffi_ores_type__', res_type)
+
+        return func
+
+    return wrapper
 
 
 _normalization_map = {
