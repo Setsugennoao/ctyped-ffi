@@ -9,7 +9,7 @@ from .types import CDataBase, MetaClassDictBase, Self, StructMetaBase
 from .utils import _protected_keys, as_cfunc
 
 __all__ = [
-    'Struct', 'OpaqueStruct'
+    'StructMeta', 'Struct', 'OpaqueStruct'
 ]
 
 

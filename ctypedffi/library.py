@@ -8,7 +8,8 @@ from .types import CallingConvention, MetaClassDictBase, Self
 from .utils import normalize_cfunc
 
 __all__ = [
-    'CallingConvention', 'Library'
+    'LibraryMeta', 'Library',
+    'CallingConvention'
 ]
 
 
