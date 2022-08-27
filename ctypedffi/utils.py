@@ -1,12 +1,11 @@
 from __future__ import annotations
 
-from ctypes import CFUNCTYPE
 from dataclasses import dataclass
 from inspect import get_annotations
 from types import NoneType
 from typing import Any, Callable, cast, overload
 
-from .ctypes import StrType, c_double, c_int, c_void_p
+from .ctypes import CFUNCTYPE, FuncPointerType, StrType, c_double, c_int, c_void_p
 from .string import String
 from .types import CallingConvention, CDataBase, F, FuncPointer, P, Pointer, R, T
 
@@ -99,6 +98,22 @@ def override(
             func.__setattr__('__ctdffi_ores_type__', res_type)
 
         return func
+
+    return wrapper
+
+
+def wrap_func_pointer(
+    func_ptr: FuncPointerType, name: str | None = None,
+    def_cconv: CallingConvention = CallingConvention.C
+) -> Callable[[Callable[P, R]], FuncPointer[P, R]]:
+    def wrapper(func: Callable[P, R]) -> FuncPointer[P, R]:
+        norm = normalize_cfunc(func, name, def_cconv)
+
+        func_pointer = func_ptr
+        func_pointer.argtypes = norm.args_types
+        func_pointer.restype = norm.res_type
+
+        return func_pointer  # type: ignore
 
     return wrapper
 
