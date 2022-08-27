@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from ctypes import pythonapi
 
 from ..ctypes import c_char_p, c_void_p, py_object
