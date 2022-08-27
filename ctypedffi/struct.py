@@ -46,7 +46,7 @@ class StructureBase(Generic[Self]):
 
     @staticmethod
     def annotate(cls: C_STB) -> StructureBase[C_STB]:
-        if Struct not in cls.__bases__ and OpaqueStruct not in cls.__bases__:
+        if Struct not in cls.mro():
             raise ValueError(
                 'Struct.annotate: The annotated class must inherit from Struct!'
             )
