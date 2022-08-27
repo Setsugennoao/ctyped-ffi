@@ -25,7 +25,7 @@ class CythonModuleMetaDict(MetaClassDictBase):
         else:
             self.capsules = dict[str, Any]()
 
-        super().__init__(module=self.module, capsules=self.capsules, __slots__=[], _fields_=[])
+        super().__init__(module=self.module, capsules=self.capsules)
 
     def _setitem_(self, name: str, value: Any, /) -> None:
         if callable(value):

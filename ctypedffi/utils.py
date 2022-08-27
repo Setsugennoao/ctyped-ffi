@@ -122,6 +122,7 @@ _normalization_map = {
     NoneType: c_void_p,
     float: c_double,
     int: c_int,
+    bool: c_int,
     str: String,
     StrType: String
 }
