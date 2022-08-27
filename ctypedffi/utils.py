@@ -1,11 +1,12 @@
 from __future__ import annotations
 
 from ctypes import CFUNCTYPE
+from inspect import get_annotations
 from types import NoneType
 from typing import Any, Callable, cast, overload
 
-from .string import String
 from .ctypes import StrType, c_double, c_int, c_void_p
+from .string import String
 from .types import CallingConvention, CDataBase, F, FuncPointer, P, Pointer, R, T
 
 __all__ = [
@@ -45,7 +46,7 @@ def normalize_cfunc(
         func.__dict__.get('__ctdffi_cconv__', def_cconv)
     )
 
-    arguments = dict(**func.__annotations__)
+    arguments = get_annotations(func, eval_str=True)
 
     return_type = arguments.pop('return')
 

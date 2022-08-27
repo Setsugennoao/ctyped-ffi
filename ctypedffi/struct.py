@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from ctypes import Structure
+from inspect import get_annotations
 from typing import TYPE_CHECKING, Any, Generic, Mapping, TypeVar
 
 from .ctypes import make_callback_returnable
@@ -50,7 +51,7 @@ class StructureBase(Generic[Self]):
                 'Struct.annotate: The annotated class must inherit from Struct!'
             )
 
-        for key, value in cls.__annotations__.items():
+        for key, value in get_annotations(cls, eval_str=True).items():
             if key.startswith('__') or key in _protected_keys:
                 continue
 
