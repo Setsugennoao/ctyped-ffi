@@ -3,7 +3,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from inspect import get_annotations
 from types import NoneType
-from typing import Any, Callable, cast, overload
+from typing import Any, Callable, Generic, cast, overload
 
 from .ctypes import CFUNCTYPE, FuncPointerType, StrType, c_double, c_int, c_void_p
 from .string import String
@@ -45,8 +45,8 @@ def ord_if_char(value: T) -> T | int:
 
 
 @dataclass
-class NormalizedFunction:
-    func: F
+class NormalizedFunction(Generic[P, R]):
+    func: Callable[P, R]
     name: str
     oname: str | None
     args_types: list[type[CDataBase]]
@@ -57,8 +57,8 @@ class NormalizedFunction:
 
 
 def normalize_cfunc(
-    func: F, name: str | None = None, def_cconv: CallingConvention = CallingConvention.C
-) -> NormalizedFunction:
+    func: Callable[P, R], name: str | None = None, def_cconv: CallingConvention = CallingConvention.C
+) -> NormalizedFunction[P, R]:
     if name is None:
         name = func.__name__
 
@@ -83,11 +83,12 @@ def normalize_cfunc(
     return NormalizedFunction(func, name, oname, args_types, oargs_types, res_type, ores_type, cconv)
 
 
-def as_cfunc(func: Callable[P, R], name: str | None = None) -> type[FuncPointer[P, R]]:
-    norm = normalize_cfunc(func, name)
+def as_cfunc(func: Callable[P, R] | NormalizedFunction[P, R], name: str | None = None) -> type[FuncPointer[P, R]]:
+    if not isinstance(func, NormalizedFunction):
+        func = normalize_cfunc(func, name)
 
     return CFUNCTYPE(  # type: ignore
-        norm.ores_type or norm.res_type, *(norm.oargs_types or norm.args_types)
+        func.ores_type or func.res_type, *(func.oargs_types or func.args_types)
     )
 
 
