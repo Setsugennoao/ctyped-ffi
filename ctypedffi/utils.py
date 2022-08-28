@@ -59,6 +59,11 @@ class NormalizedFunction(Generic[P, R]):
 def normalize_cfunc(
     func: Callable[P, R], name: str | None = None, def_cconv: CallingConvention = CallingConvention.C
 ) -> NormalizedFunction[P, R]:
+    if '__wrapped__' in func.__dir__():
+        old_dict = func.__dict__.copy()
+        func = func.__wrapped__  # type: ignore
+        func.__dict__ |= old_dict | func.__dict__
+
     if name is None:
         name = func.__name__
 
@@ -108,8 +113,10 @@ def with_signature(
         if kwargs:
             if (empty_args := not args_types):
                 args_types = []
-
             for i, (param_name, otype) in enumerate(annotations.items()):
+                if param_name == 'return':
+                    continue
+
                 arg_type = kwargs.get(param_name, otype)
 
                 if empty_args:
