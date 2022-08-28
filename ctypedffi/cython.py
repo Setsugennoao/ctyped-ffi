@@ -6,7 +6,7 @@ from typing import Any, Mapping, NoReturn
 from .libs import PyCapsule
 from .struct import Struct, StructMeta
 from .types import MetaClassDictBase, Self
-from .utils import as_cfunc
+from .utils import as_cfunc, normalize_cfunc
 
 __all__ = [
     'CythonModuleMeta', 'CythonModule'
@@ -32,12 +32,15 @@ class CythonModuleMetaDict(MetaClassDictBase):
             if self.module is None:
                 value = self._raise_module_unavailable
             else:
-                try:
-                    capsule = self.capsules[name]
-                except KeyError as e:
-                    raise AttributeError(name) from e
+                norm = normalize_cfunc(value, name)
+                capsule_name = norm.oname or norm.name
 
-                func_type = as_cfunc(value, name)
+                try:
+                    capsule = self.capsules[capsule_name]
+                except KeyError as e:
+                    raise AttributeError(capsule_name) from e
+
+                func_type = as_cfunc(norm)
 
                 mangled_name = PyCapsule.GetName(capsule)
                 capsule_ptr = PyCapsule.GetPointer(capsule, mangled_name)
