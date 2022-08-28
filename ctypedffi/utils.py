@@ -88,6 +88,16 @@ def normalize_cfunc(
     return NormalizedFunction(func, name, oname, args_types, oargs_types, res_type, ores_type, cconv)
 
 
+@overload
+def as_cfunc(func: Callable[P, R], name: str | None = None) -> type[FuncPointer[P, R]]:
+    ...
+
+
+@overload
+def as_cfunc(func: NormalizedFunction[P, R], name: str | None = None) -> type[FuncPointer[P, R]]:
+    ...
+
+
 def as_cfunc(func: Callable[P, R] | NormalizedFunction[P, R], name: str | None = None) -> type[FuncPointer[P, R]]:
     if not isinstance(func, NormalizedFunction):
         func = normalize_cfunc(func, name)
