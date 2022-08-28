@@ -11,9 +11,14 @@ from .types import CallingConvention, CDataBase, F, FuncPointer, P, Pointer, R, 
 
 __all__ = [
     '_protected_keys',
+
     'ord_if_char',
-    'normalize_cfunc',
-    'as_cfunc'
+
+    'normalize_cfunc', 'normalize_ctype',
+
+    'as_cfunc', 'wrap_func_pointer',
+
+    'with_signature',
 ]
 
 
@@ -43,11 +48,11 @@ def ord_if_char(value: T) -> T | int:
 class NormalizedFunction:
     func: F
     name: str
-    name_raw: str | None
+    oname: str | None
     args_types: list[type[CDataBase]]
-    args_types_raw: list[type[CDataBase]] | None
+    oargs_types: list[type[CDataBase]] | None
     res_type: type[CDataBase]
-    res_type_raw: type[CDataBase] | None
+    ores_type: type[CDataBase] | None
     cconv: CallingConvention
 
 
@@ -81,15 +86,45 @@ def normalize_cfunc(
 def as_cfunc(func: Callable[P, R], name: str | None = None) -> type[FuncPointer[P, R]]:
     norm = normalize_cfunc(func, name)
 
-    return CFUNCTYPE(norm.res_type, *norm.args_types)  # type: ignore
+    return CFUNCTYPE(  # type: ignore
+        norm.ores_type or norm.res_type, *(norm.oargs_types or norm.args_types)
+    )
 
 
-def override(
-    name: str | None = None, args_types: list[CDataBase] | None = None, res_type: CDataBase | None = None
+def with_signature(
+    args_types: list[type[CDataBase]] | None = None,
+    res_type: type[CDataBase] | None = None,
+    name: str | None = None, **kwargs: type[CDataBase]
 ) -> Callable[[F], F]:
     def wrapper(func: F) -> F:
+        nonlocal args_types, res_type, name, kwargs
+
         if name is not None:
             func.__setattr__('__ctdffi_oname__', name)
+
+        annotations = get_annotations(func, eval_str=True)
+
+        if kwargs:
+            if (empty_args := not args_types):
+                args_types = []
+
+            for i, (param_name, otype) in enumerate(annotations.items()):
+                arg_type = kwargs.get(param_name, otype)
+
+                if empty_args:
+                    args_types.append(arg_type)
+                else:
+                    try:
+                        args_types[i] = arg_type
+                    except KeyError:
+                        raise ValueError(
+                            'override: Not enough arguments specified for args_types!'
+                        )
+        elif args_types:
+            if len(args_types) != len(annotations) - ('return' in annotations):
+                raise ValueError(
+                    'override: Arguments number mismatch for args_types!'
+                )
 
         if args_types is not None:
             func.__setattr__('__ctdffi_oargs_types__', args_types)

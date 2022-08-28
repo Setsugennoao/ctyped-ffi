@@ -23,9 +23,9 @@ class LibraryMetaDict(MetaClassDictBase):
         if callable(value):
             norm = normalize_cfunc(value, name, self.def_cconv)
 
-            value = self.lib.get(norm.name, norm.cconv.value)
-            value.argtypes = norm.args_types
-            value.restype = norm.res_type
+            value = self.lib.get(norm.oname or norm.name, norm.cconv.value)
+            value.argtypes = norm.oargs_types or norm.args_types
+            value.restype = norm.ores_type or norm.res_type
 
         return dict.__setitem__(self, name, value)
 
