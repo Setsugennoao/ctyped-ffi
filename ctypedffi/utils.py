@@ -100,7 +100,7 @@ def with_signature(
         nonlocal args_types, res_type, name, kwargs
 
         if name is not None:
-            func.__setattr__('__ctdffi_oname__', name)
+            func.__dict__.__setitem__('__ctdffi_oname__', name)
 
         annotations = get_annotations(func, eval_str=True)
 
@@ -127,10 +127,10 @@ def with_signature(
                 )
 
         if args_types is not None:
-            func.__setattr__('__ctdffi_oargs_types__', args_types)
+            func.__dict__.__setitem__('__ctdffi_oargs_types__', args_types)
 
         if res_type is not None:
-            func.__setattr__('__ctdffi_ores_type__', res_type)
+            func.__dict__.__setitem__('__ctdffi_ores_type__', res_type)
 
         return func
 

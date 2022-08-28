@@ -138,7 +138,7 @@ class CallingConvention(str, Enum):
                 'CallingConvention: Call must be used as a decorator on a funtion!'
             )
 
-        func.__setattr__('__ctdffi_cconv__', self)
+        func.__dict__.__setitem__('__ctdffi_cconv__', self)
 
         return func
 
