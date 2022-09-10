@@ -1,4 +1,4 @@
-"""ctypes wrapper for building typed foreign function iterfaces"""
+"""Wrapper around ctypes, for creating typed foreign function libraries"""
 
 __version__ = '0.0.0'
 
