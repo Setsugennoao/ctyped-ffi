@@ -1,10 +1,12 @@
 
 import ctypes
 from ctypes import (
-    POINTER, PYFUNCTYPE, Array, Structure, _SimpleCData, addressof, c_char, c_char_p, c_double, c_float, c_int, c_int8,
-    c_int16, c_int32, c_int64, c_longlong, c_short, c_size_t, c_ssize_t, c_ubyte, c_uint, c_uint8, c_uint16, c_uint32,
-    c_uint64, c_ulonglong, c_ushort, c_void_p, memmove, py_object as py_object_t, pythonapi, sizeof, string_at,
-    CFUNCTYPE)
+    CFUNCTYPE, POINTER, PYFUNCTYPE, Array, Structure, _SimpleCData, addressof, c_char, c_char_p, c_double, c_float,
+    c_int, c_int8, c_int16, c_int32, c_int64, c_longlong, c_short, c_size_t, c_ssize_t, c_ubyte, c_uint, c_uint8,
+    c_uint16, c_uint32, c_uint64, c_ulonglong, c_ushort, c_void_p, memmove
+)
+from ctypes import py_object as py_object_t
+from ctypes import pythonapi, sizeof, string_at
 from functools import lru_cache
 from types import FunctionType, MappingProxyType
 from typing import TYPE_CHECKING, Any, TypeVar, cast
