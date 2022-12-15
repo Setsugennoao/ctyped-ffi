@@ -12,6 +12,8 @@ __all__ = [
     'StructMeta', 'Struct', 'OpaqueStruct'
 ]
 
+_opaqueset = False
+
 
 class StructMetaDict(MetaClassDictBase):
     def _setitem_(self, name: str, value: Any, /) -> None:
@@ -33,6 +35,13 @@ class StructMeta(StructMetaBase):
 
     @classmethod
     def __prepare__(metacls, name: str, bases: tuple[type, ...], /, **kwargs: Any) -> Mapping[str, object]:
+        global _opaqueset
+
+        if name == 'OpaqueStruct':
+            _opaqueset = True
+        elif _opaqueset and OpaqueStruct in bases:
+            return dict[str, Any]()
+
         return StructMetaDict(__slots__=[], _fields_=[])
 
 
@@ -47,13 +56,13 @@ class StructureBase(Generic[Self]):
             raise ValueError(
                 'Struct.annotate: The annotated class must inherit from Struct!'
             )
+        elif OpaqueStruct not in cls.mro():
+            for key, value in get_annotations(cls, eval_str=True).items():
+                if key.startswith('__') or key in _protected_keys:
+                    continue
 
-        for key, value in get_annotations(cls, eval_str=True).items():
-            if key.startswith('__') or key in _protected_keys:
-                continue
-
-            cls.__slots__.append(key)
-            cls._fields_.append((key, value))
+                cls.__slots__.append(key)
+                cls._fields_.append((key, value))
 
         return make_callback_returnable(cls)  # type: ignore
 
