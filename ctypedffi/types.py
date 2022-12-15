@@ -103,6 +103,26 @@ class Pointer(Generic[C_T], PointerBase[C_T]):
 
         return normalize_ctype(value)
 
+    @classmethod
+    def from_buffer(cls: type[Self], source: WriteableBuffer, offset: int = 0) -> Self:
+        return Pointer.normalize(cls).from_buffer(source, offset)  # type: ignore
+
+    @classmethod
+    def from_buffer_copy(cls: type[Self], source: ReadableBuffer, offset: int = 0) -> Self:
+        return Pointer.normalize(cls).from_buffer_copy(source, offset)  # type: ignore
+
+    @classmethod
+    def from_address(cls: type[Self], address: int) -> Self:
+        return Pointer.normalize(cls).from_address(address)  # type: ignore
+
+    @classmethod
+    def from_param(cls: type[Self], obj: Any) -> Self:
+        return Pointer.normalize(cls).from_param(obj)  # type: ignore
+
+    @classmethod
+    def in_dll(cls: type[Self], library: CDLL, name: str) -> Self:
+        return Pointer.normalize(cls).in_dll(library, name)  # type: ignore
+
 
 class PointerBound(Pointer):  # type: ignore
     __bound_value__: C_TB  # type: ignore
