@@ -1,4 +1,5 @@
 from __future__ import annotations
+from ctypes import Array, c_char, create_string_buffer
 
 from dataclasses import dataclass
 from inspect import get_annotations
@@ -18,7 +19,7 @@ __all__ = [
 
     'as_cfunc', 'wrap_func_pointer',
 
-    'with_signature',
+    'with_signature', 'get_string_buff'
 ]
 
 
@@ -184,3 +185,8 @@ _normalization_map = {
 
 def normalize_ctype(value: Any) -> type[CDataBase]:
     return cast(type[CDataBase], _normalization_map.get(value, value))
+
+
+def get_string_buff(err_length: int = 1024) -> tuple[Array[c_char], int]:
+    buf = create_string_buffer(err_length)
+    return buf, len(buf)
