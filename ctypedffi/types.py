@@ -1,19 +1,34 @@
 from __future__ import annotations
 
+import array
+import mmap
 from abc import abstractmethod
-from ctypes import POINTER, Structure, c_void_p
+from ctypes import CDLL, POINTER, Structure, c_void_p
 from enum import Enum
-from typing import TYPE_CHECKING, Any, Callable, Generic, ParamSpec, Sequence, TypeVar
+from pickle import PickleBuffer
+from typing import TYPE_CHECKING, Any, Callable, Generic, ParamSpec, Sequence, TypeAlias, TypeVar
 
 if TYPE_CHECKING:
     from ctypes import _CData as CDataBase
-    from ctypes import _Pointer  # type: ignore
+    from ctypes import _Pointer
     from ctypes import _StructUnionMeta as StructMetaBase
 else:
     _Pointer = Generic
     PointerBase = object
     StructMetaBase = type(Structure)
     CDataBase = Structure.__bases__[0]
+
+
+ReadOnlyBuffer: TypeAlias = bytes
+if TYPE_CHECKING:
+    WriteableBuffer: TypeAlias = (
+        bytearray | memoryview | array.array[Any] | mmap.mmap | CDataBase | PickleBuffer
+    )
+else:
+    WriteableBuffer: TypeAlias = (
+        bytearray | memoryview | array.array | mmap.mmap | CDataBase | PickleBuffer
+    )
+ReadableBuffer: TypeAlias = ReadOnlyBuffer | WriteableBuffer
 
 
 __all__ = [
@@ -37,7 +52,7 @@ R = TypeVar('R')
 
 
 if TYPE_CHECKING:
-    class PointerBase(Generic[C_T], _Pointer[C_T]):
+    class PointerBase(Generic[C_T], _Pointer[C_T]):  # type: ignore
         ...
 else:
     class PointerBase(Generic[C_T], CDataBase):
@@ -65,7 +80,7 @@ class Pointer(Generic[C_T], PointerBase[C_T]):
 
         return ptr_type  # type: ignore
 
-    def __new__(cls: type[Self], cls_type: C_T | None = None) -> type[Pointer[C_T]]:
+    def __new__(cls: type[Self], cls_type: C_T | None = None) -> type[Pointer[C_T]]:  # type: ignore
         from .struct import Struct
 
         if cls_type.__class__.__base__ is Struct:
@@ -77,7 +92,7 @@ class Pointer(Generic[C_T], PointerBase[C_T]):
 
             cls_type = cls._type_  # type: ignore
 
-        return Pointer._norm_ptr(cls_type)
+        return Pointer._norm_ptr(cls_type)  # type: ignore
 
     @staticmethod
     def _to_normalize(value: Any) -> bool:
@@ -127,7 +142,7 @@ class Pointer(Generic[C_T], PointerBase[C_T]):
 class PointerBound(Pointer):  # type: ignore
     __bound_value__: C_TB  # type: ignore
 
-    def __new__(cls: type[Self], size: int | None = None) -> Pointer[C_TB]:
+    def __new__(cls: type[Self], size: int | None = None) -> Pointer[C_TB]:  # type: ignore
         from .utils import normalize_ctype
 
         nvalue = normalize_ctype(cls.__bound_value__)  # type: ignore

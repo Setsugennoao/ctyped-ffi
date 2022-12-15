@@ -9,15 +9,10 @@ from ctypes import py_object as py_object_t
 from ctypes import pythonapi, sizeof, string_at
 from functools import lru_cache
 from types import FunctionType, MappingProxyType
-from typing import TYPE_CHECKING, Any, TypeVar, cast
+from typing import TYPE_CHECKING, Any, cast
 
 from .string import String
 from .types import C_T_CDB, CDataBase
-
-if TYPE_CHECKING:
-    from ctypes import _Pointer  # type: ignore
-else:
-    _Pointer = None
 
 
 __all__ = [
@@ -167,9 +162,6 @@ class CDataBaseFix(CDataBase):
     _ctypes_patch_setfunc: SETFUNC
 
 
-C_T_CBF = TypeVar('C_T_CBF', bound=CDataBaseFix)
-
-
 # https://github.com/python/cpython/blob/main/Modules/_ctypes/ctypes.h#L200-L233
 class StgDictObject(Structure):
     _fields_ = [
@@ -235,8 +227,8 @@ def _check_size(func_name: str, ctype: CDataBaseFix, size: c_size_t) -> int:
     return ctype._actual_size
 
 
-def make_callback_returnable(ctype: CDataBase) -> C_T_CBF:
-    ctypef = cast(C_T_CBF, ctype)
+def make_callback_returnable(ctype: CDataBase) -> CDataBaseFix:
+    ctypef = cast(CDataBaseFix, ctype)
 
     if hasattr(ctype, '_ctypes_patch_getfunc'):
         return ctypef

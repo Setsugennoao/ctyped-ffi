@@ -5,7 +5,7 @@ from inspect import get_annotations
 from types import NoneType
 from typing import Any, Callable, Generic, cast, overload
 
-from .ctypes import CFUNCTYPE, FuncPointerType, StrType, c_double, c_int, c_void_p
+from .ctypes import CFUNCTYPE, FuncPointerType, StrType, VoidReturn, c_double, c_int, c_void_p
 from .string import String
 from .types import CallingConvention, CDataBase, F, FuncPointer, P, Pointer, R, T
 
@@ -172,6 +172,7 @@ def wrap_func_pointer(
 
 
 _normalization_map = {
+    VoidReturn: c_void_p,
     NoneType: c_void_p,
     float: c_double,
     int: c_int,
