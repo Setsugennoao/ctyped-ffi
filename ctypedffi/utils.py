@@ -5,10 +5,9 @@ from dataclasses import dataclass
 from inspect import get_annotations
 from types import NoneType
 from typing import Any, Callable, Generic, cast, overload
-
-from .ctypes import CFUNCTYPE, FuncPointerType, StrType, VoidReturn, c_double, c_int, c_void_p
+from .ctypes import StrType, VoidReturn, c_double, c_int, c_void_p
 from .string import String
-from .types import CallingConvention, CDataBase, F, FuncPointer, P, Pointer, R, T
+from .types import CallingConvention, CDataBase, F, FuncPointer, P, Pointer, R, T, FuncPointerType
 
 __all__ = [
     '_protected_keys',
@@ -89,6 +88,9 @@ def normalize_cfunc(
     return NormalizedFunction(func, name, oname, args_types, oargs_types, res_type, ores_type, cconv)
 
 
+_c_functype_cache = dict[tuple[type[CDataBase], tuple[type[CDataBase], ...]], type]()
+
+
 @overload
 def as_cfunc(func: Callable[P, R], name: str | None = None) -> type[FuncPointer[P, R]]:
     ...
@@ -103,9 +105,20 @@ def as_cfunc(func: Callable[P, R] | NormalizedFunction[P, R], name: str | None =
     if not isinstance(func, NormalizedFunction):
         func = normalize_cfunc(func, name)
 
-    return CFUNCTYPE(  # type: ignore
-        func.ores_type or func.res_type, *(func.oargs_types or func.args_types)
-    )
+    restype = func.ores_type or func.res_type
+    argtypes = tuple(func.oargs_types or func.args_types)
+
+    try:
+        functype = _c_functype_cache[(restype, argtypes)]
+    except KeyError:
+        class CFunctionType(FuncPointer[P, R]):
+            _argtypes_ = argtypes
+            _restype_ = restype
+            _flags_ = FuncPointer._flags_
+
+        functype = _c_functype_cache[(restype, argtypes)] = CFunctionType
+
+    return functype
 
 
 def with_signature(

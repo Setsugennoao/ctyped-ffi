@@ -385,7 +385,7 @@ class String(MutableString, Union):
     @classmethod
     def from_param(cls, obj: StrType | int | None) -> StrType:
         if obj is None or obj == 0:  # Convert None or 0
-            return cls(POINTER(c_char)())  # type: ignore
+            return cls(POINTER(c_char)())
         elif isinstance(obj, bytes):  # Convert from bytes
             return cls(obj)
         elif isinstance(obj, str):  # Convert from str

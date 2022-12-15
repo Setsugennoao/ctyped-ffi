@@ -7,7 +7,7 @@ from ctypes import (
 )
 from ctypes import py_object as py_object_t
 from functools import lru_cache
-from types import FunctionType, MappingProxyType
+from types import MappingProxyType
 from typing import TYPE_CHECKING, Any, cast
 
 from .string import String
@@ -31,7 +31,7 @@ __all__ = [
 
     'c_size_t', 'c_ptrdiff_t', 'c_intptr_t',
 
-    'py_object_t', 'py_object', 'CFUNCTYPE', 'FuncPointerType',
+    'py_object_t', 'py_object', 'CFUNCTYPE',
 
     'PyTypeObject', 'PyObject', 'PyVarObject', 'PyDictObject', 'StgDictObject',
 
@@ -59,10 +59,8 @@ c_uint64_t = c_ulonglong
 if TYPE_CHECKING:
     c_ptrdiff_t: type[_SimpleCData[int]]
     c_intptr_t: type[_SimpleCData[int]]
-    from ctypes import _FuncPointer as FuncPointerType
     py_object = py_object_t[Any]
 else:
-    FuncPointerType = FunctionType
     py_object = py_object_t
 
 

@@ -6,15 +6,19 @@ from abc import abstractmethod
 from ctypes import CDLL, POINTER, Structure, c_void_p
 from enum import Enum
 from pickle import PickleBuffer
+from types import FunctionType
 from typing import TYPE_CHECKING, Any, Callable, Generic, ParamSpec, Sequence, TypeAlias, TypeVar
+
 
 if TYPE_CHECKING:
     from ctypes import _CData as CDataBase
+    from ctypes import _FuncPointer as FuncPointerType
     from ctypes import _Pointer
     from ctypes import _StructUnionMeta as StructMetaBase
 else:
     _Pointer = Generic
     PointerBase = object
+    FuncPointerType = FunctionType
     StructMetaBase = type(Structure)
     CDataBase = Structure.__bases__[0]
 
@@ -35,7 +39,7 @@ __all__ = [
     'MetaClassDictBase',
     'StructMetaBase',
     'CDataBase',
-    'Pointer', 'FuncPointer',
+    'Pointer', 'FuncPointer', 'FuncPointerType',
     'T', 'F', 'P', 'R', 'C_T', 'Self',
     'CallingConvention'
 ]
@@ -151,16 +155,36 @@ class PointerBound(Pointer):  # type: ignore
         return Pointer._norm_ptr(bvalue)()  # type: ignore
 
 
-class FuncPointer(Generic[P, R]):
-    restype: type[CDataBase]
-    argtypes: Sequence[type[CDataBase]]
-    errcheck: Callable[[type[CDataBase] | None, FuncPointer[P, R], tuple[CDataBase, ...]], CDataBase]
+if TYPE_CHECKING:
+    class CFuncPointerBase(FuncPointerType):
+        _flags_: int
+else:
+    from _ctypes import CFuncPtr, FUNCFLAG_CDECL, FUNCFLAG_USE_ERRNO, FUNCFLAG_USE_LASTERROR
 
-    def __new__(cls: type[Self], func: c_void_p | Callable[P, R]) -> Self:
-        ...
+    class CFuncPointerBase(CFuncPtr):
+        _flags_ = FUNCFLAG_CDECL | FUNCFLAG_USE_ERRNO | FUNCFLAG_USE_LASTERROR
 
-    def __call__(self, *args: P.args, **kwargs: P.kwargs) -> R:
-        ...
+
+class FuncPointer(Generic[P, R], CFuncPointerBase):
+    _flags_ = CFuncPointerBase._flags_
+
+    if TYPE_CHECKING:
+        restype: type[CDataBase]
+        argtypes: Sequence[type[CDataBase]]
+        errcheck: Callable[  # type: ignore
+            [type[CDataBase] | None, FuncPointer[P, R], tuple[CDataBase, ...]], CDataBase
+        ]
+
+    def __new__(cls: type[Self], func: c_void_p | Callable[P, R] | None = None) -> Self:
+        if func is None:
+            def _func(*args):  # type: ignore
+                ...
+            func = _func  # type: ignore
+        return super().__new__(cls, func)  # type: ignore
+
+    if TYPE_CHECKING:
+        def __call__(self, *args: P.args, **kwargs: P.kwargs) -> R:
+            ...
 
 
 class CallingConvention(str, Enum):
