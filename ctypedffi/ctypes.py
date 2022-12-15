@@ -21,7 +21,7 @@ else:
 
 
 __all__ = [
-    'c_void_p',
+    'c_void_p', 'VoidReturn',
 
     'c_char', 'c_char_p', 'StrType',
 
@@ -48,6 +48,8 @@ __all__ = [
     'get_stgdict_of_type', 'make_callback_returnable',
 ]
 
+
+VoidReturn = c_void_p | None
 
 c_int8_t = c_char
 c_int16_t = c_short
