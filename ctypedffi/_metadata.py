@@ -1,6 +1,6 @@
 """Wrapper around ctypes, for creating typed foreign function libraries"""
 
-__version__ = '1.0.1'
+__version__ = '1.1.0'
 
 __author__ = 'Setsugen no ao <setsugen@setsugen.dev>'
 __maintainer__ = __author__
