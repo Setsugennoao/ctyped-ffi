@@ -1,20 +1,21 @@
 from __future__ import annotations
-from ctypes import Array, c_char, create_string_buffer
 
+from ctypes import Array, c_char, create_string_buffer
 from dataclasses import dataclass
 from inspect import get_annotations
-from types import NoneType
+from types import FunctionType, NoneType
 from typing import Any, Callable, Generic, cast, overload
+
 from .ctypes import StrType, VoidReturn, c_double, c_int, c_void_p
 from .string import String
-from .types import CallingConvention, CDataBase, F, FuncPointer, P, Pointer, R, T, FuncPointerType
+from .types import CallingConvention, CDataBase, F, FuncPointer, FuncPointerType, P, Pointer, R, T
 
 __all__ = [
     '_protected_keys',
 
     'ord_if_char',
 
-    'normalize_cfunc', 'normalize_ctype',
+    'normalize_cfunc', 'normalize_ctype', 'unwrap_func',
 
     'as_cfunc', 'wrap_func_pointer',
 
@@ -56,13 +57,18 @@ class NormalizedFunction(Generic[P, R]):
     cconv: CallingConvention
 
 
-def normalize_cfunc(
-    func: Callable[P, R], name: str | None = None, def_cconv: CallingConvention = CallingConvention.C
-) -> NormalizedFunction[P, R]:
+def unwrap_func(func: Callable[P, R]) -> Callable[P, R]:
     if '__wrapped__' in func.__dir__():
         old_dict = func.__dict__.copy()
         func = func.__wrapped__  # type: ignore
         func.__dict__ |= old_dict | func.__dict__
+    return func
+
+
+def normalize_cfunc(
+    func: Callable[P, R], name: str | None = None, def_cconv: CallingConvention = CallingConvention.C
+) -> NormalizedFunction[P, R]:
+    func = unwrap_func(func)
 
     if name is None:
         name = func.__name__
