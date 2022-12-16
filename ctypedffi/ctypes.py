@@ -41,7 +41,7 @@ __all__ = [
 
     'get_stgdict_of_type', 'make_callback_returnable',
 
-    'memmove'
+    'memmove', 'addressof'
 ]
 
 
