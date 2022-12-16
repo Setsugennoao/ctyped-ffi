@@ -28,7 +28,7 @@ class CythonModuleMetaDict(MetaClassDictBase):
         super().__init__(module=self.module, capsules=self.capsules)
 
     def _setitem_(self, name: str, value: Any, /) -> None:
-        if callable(value):
+        if self.to_process(value):
             if self.module is None:
                 value = self._raise_module_unavailable
             else:

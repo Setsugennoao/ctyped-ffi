@@ -9,7 +9,6 @@ from pickle import PickleBuffer
 from types import FunctionType
 from typing import TYPE_CHECKING, Any, Callable, Generic, ParamSpec, Sequence, TypeAlias, TypeVar
 
-
 if TYPE_CHECKING:
     from ctypes import _CData as CDataBase
     from ctypes import _FuncPointer as FuncPointerType
@@ -159,7 +158,7 @@ if TYPE_CHECKING:
     class CFuncPointerBase(FuncPointerType):
         _flags_: int
 else:
-    from _ctypes import CFuncPtr, FUNCFLAG_CDECL, FUNCFLAG_USE_ERRNO, FUNCFLAG_USE_LASTERROR
+    from _ctypes import FUNCFLAG_CDECL, FUNCFLAG_USE_ERRNO, FUNCFLAG_USE_LASTERROR, CFuncPtr
 
     class CFuncPointerBase(CFuncPtr):
         _flags_ = FUNCFLAG_CDECL | FUNCFLAG_USE_ERRNO | FUNCFLAG_USE_LASTERROR
@@ -203,6 +202,11 @@ class CallingConvention(str, Enum):
 
 
 class MetaClassDictBase(dict[str, Any]):
+    @classmethod
+    def to_process(cls, value: object, ) -> bool:
+        from .utils import is_python_only
+        return callable(value) and not is_python_only(value)
+
     @abstractmethod
     def _setitem_(self, name: str, value: object, /) -> None:
         ...

@@ -209,3 +209,10 @@ def normalize_ctype(value: Any) -> type[CDataBase]:
 def get_string_buff(err_length: int = 1024) -> tuple[Array[c_char], int]:
     buf = create_string_buffer(err_length)
     return buf, len(buf)
+
+
+def is_python_only(func: Any) -> bool:
+    if not isinstance(func, (FunctionType, staticmethod, classmethod)):
+        return False
+
+    return unwrap_func(func).__dict__.get('__python_only__', False)  # type: ignore

@@ -2,22 +2,24 @@ from __future__ import annotations
 
 from ctypes import Structure
 from inspect import get_annotations
-from typing import TYPE_CHECKING, Any, Generic, Mapping, TypeVar
+from typing import TYPE_CHECKING, Any, Callable, Generic, Mapping, TypeVar
 
 from .ctypes import make_callback_returnable
 from .types import CDataBase, MetaClassDictBase, Self, StructMetaBase
-from .utils import _protected_keys, as_cfunc
+from .utils import _protected_keys, as_cfunc, is_python_only, normalize_ctype
 
 __all__ = [
     'StructMeta', 'Struct', 'OpaqueStruct'
 ]
+
+F = TypeVar('F', bound=Callable[..., Any])
 
 _opaqueset = False
 
 
 class StructMetaDict(MetaClassDictBase):
     def _setitem_(self, name: str, value: Any, /) -> None:
-        if callable(value):
+        if self.to_process(value):
             value = as_cfunc(value, name)
 
             self['__slots__'].append(name)
@@ -56,15 +58,21 @@ class StructureBase(Generic[Self]):
             raise ValueError(
                 'Struct.annotate: The annotated class must inherit from Struct!'
             )
-        elif OpaqueStruct not in cls.mro():
+
+        if OpaqueStruct not in cls.mro():
             for key, value in get_annotations(cls, eval_str=True).items():
-                if key.startswith('__') or key in _protected_keys:
+                if key.startswith('__') or key in _protected_keys or is_python_only(value):
                     continue
 
                 cls.__slots__.append(key)
                 cls._fields_.append((key, normalize_ctype(value)))  # type: ignore
 
         return make_callback_returnable(cls)  # type: ignore
+
+    @staticmethod
+    def python_only(func: F) -> F:
+        func.__dict__['__python_only__'] = True
+        return func
 
 
 class Struct(StructureBase, Structure, metaclass=StructMeta):  # type: ignore

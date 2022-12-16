@@ -20,7 +20,7 @@ class LibraryMetaDict(MetaClassDictBase):
         self['__pytydffi_lib__'] = self.lib
 
     def _setitem_(self, name: str, value: Any, /) -> None:
-        if callable(value):
+        if self.to_process(value):
             norm = normalize_cfunc(value, name, self.def_cconv)
 
             value = self.lib.get(norm.oname or norm.name, norm.cconv.value)
