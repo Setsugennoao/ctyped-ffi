@@ -21,7 +21,7 @@ class StructMetaDict(MetaClassDictBase):
             value = as_cfunc(value, name)
 
             self['__slots__'].append(name)
-            self['_fields_'].append((name, value))
+            self['_fields_'].append((name, normalize_ctype(value)))
 
             return
 
@@ -62,7 +62,7 @@ class StructureBase(Generic[Self]):
                     continue
 
                 cls.__slots__.append(key)
-                cls._fields_.append((key, value))
+                cls._fields_.append((key, normalize_ctype(value)))  # type: ignore
 
         return make_callback_returnable(cls)  # type: ignore
 
