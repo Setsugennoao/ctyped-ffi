@@ -1,12 +1,13 @@
 from __future__ import annotations
 
 import array
+import builtins
 import mmap
 from abc import abstractmethod
-from ctypes import CDLL, POINTER, Structure, c_void_p
+from ctypes import CDLL, POINTER, Structure, c_void_p, pointer
 from enum import Enum
 from pickle import PickleBuffer
-from types import FunctionType
+from types import FunctionType, UnionType
 from typing import TYPE_CHECKING, Any, Callable, Generic, ParamSpec, Sequence, TypeAlias, TypeVar
 
 if TYPE_CHECKING:
@@ -67,10 +68,20 @@ class Pointer(Generic[C_T], PointerBase[C_T]):
     contents: C_T
 
     def __class_getitem__(cls, _type: C_T) -> type[PointerBound]:
-        class PointerInnerClass(PointerBound):
-            __bound_value__ = _type
+        try:
+            return _cache_pbound_getitem[_type]
+        except KeyError:
+            from .utils import normalize_ctype
 
-        return PointerInnerClass
+            _typev = normalize_ctype(_type)
+
+            class PointerInnerClass(PointerBound):
+                __bound_value__ = _typev
+                __norm_bvalue__ = Pointer._norm_ptr(_typev)
+
+            _cache_pbound_getitem[_type] = PointerInnerClass
+
+        return _cache_pbound_getitem[_type]
 
     @staticmethod
     def _norm_ptr(cls_type: C_T) -> Pointer[C_T]:
@@ -147,14 +158,21 @@ class Pointer(Generic[C_T], PointerBase[C_T]):
 
 class PointerBound(Pointer):  # type: ignore
     __bound_value__: C_TB  # type: ignore
+    __norm_bvalue__: Pointer[C_TB]
 
-    def __new__(cls: type[Self], size: int | None = None) -> Pointer[C_TB]:  # type: ignore
-        from .utils import normalize_ctype
+    def __new__(cls: type[Self], value: Self | Any | None = None) -> Pointer[C_TB]:  # type: ignore
+        if value is None:
+            try:
+                return _cache_pbound_voidptr[cls]  # type: ignore
+            except KeyError:
+                ...
 
-        nvalue = normalize_ctype(cls.__bound_value__)  # type: ignore
-        bvalue = nvalue if size is None else nvalue * size
+        ptr = cls.__norm_bvalue__()  # type: ignore
 
-        return Pointer._norm_ptr(bvalue)()  # type: ignore
+        if value is None:
+            _cache_pbound_voidptr[cls] = ptr  # type: ignore
+
+        return ptr  # type: ignore
 
 
 if TYPE_CHECKING:
@@ -219,6 +237,14 @@ class MetaClassDictBase(dict[str, Any]):
             return dict.__setitem__(self, name, value)
 
         return self._setitem_(name, value)
+
+
+if TYPE_CHECKING:
+    _cache_pbound_getitem = dict[C_T, type[PointerBound]]()
+    _cache_pbound_voidptr = dict[type[PointerBound], Pointer[C_T]]()
+else:
+    _cache_pbound_getitem = {}
+    _cache_pbound_voidptr = {}
 
 
 builtins_isinstance = builtins.isinstance
