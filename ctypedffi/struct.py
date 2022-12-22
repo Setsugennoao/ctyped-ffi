@@ -67,7 +67,13 @@ class StructureBase(Generic[Self]):
                 cls.__slots__.append(key)
                 cls._fields_.append((key, normalize_ctype(value)))  # type: ignore
 
-        return make_callback_returnable(cls)  # type: ignore
+            class inner_annotated(cls):  # type: ignore
+                __slots__ = cls.__slots__.copy()
+                _fields_ = cls._fields_.copy()
+        else:
+            inner_annotated = cls  # type: ignore
+
+        return make_callback_returnable(inner_annotated)  # type: ignore
 
     @staticmethod
     def python_only(func: F) -> F:
