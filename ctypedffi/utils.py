@@ -203,6 +203,10 @@ _normalization_map = {
 
 
 def normalize_ctype(value: Any) -> type[CDataBase]:
+    from .types import PointerBound
+    if isinstance(value, type) and issubclass(value, PointerBound):
+        return value.__norm_bvalue__  # type: ignore
+
     return cast(type[CDataBase], _normalization_map.get(value, value))
 
 
