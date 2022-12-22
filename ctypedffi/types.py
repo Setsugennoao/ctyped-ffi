@@ -216,3 +216,18 @@ class MetaClassDictBase(dict[str, Any]):
             return dict.__setitem__(self, name, value)
 
         return self._setitem_(name, value)
+
+
+builtins_isinstance = builtins.isinstance
+
+
+def ctypedffi_isinstance(
+    __obj: object, __class_or_tuple: type | UnionType | tuple[type | UnionType | tuple[Any, ...], ...]
+) -> bool:
+    if builtins_isinstance(__class_or_tuple, type) and issubclass(__class_or_tuple, PointerBound):  # type: ignore
+        __class_or_tuple = __class_or_tuple.__norm_bvalue__  # type: ignore
+
+    return builtins_isinstance(__obj, __class_or_tuple)
+
+
+builtins.isinstance = ctypedffi_isinstance
