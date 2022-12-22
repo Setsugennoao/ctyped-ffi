@@ -84,16 +84,19 @@ class Pointer(Generic[C_T], PointerBase[C_T]):
         return ptr_type  # type: ignore
 
     def __new__(cls: type[Self], cls_type: C_T | None = None) -> type[Pointer[C_T]]:  # type: ignore
+        if not isinstance(cls_type, type):
+            return pointer(cls_type)  # type: ignore
+
         from .struct import Struct
 
-        if cls_type.__class__.__base__ is Struct:
-            return cls_type  # type: ignore
+        if cls_type.__class__.__base__ is Struct:  # type: ignore
+            return cls_type
 
         if cls_type is None:
-            if not hasattr(cls, '_type_'):
-                return c_void_p(None)  # type: ignore
+            if not hasattr(cls, '_type_'):  # type: ignore
+                return c_void_p(None)
 
-            cls_type = cls._type_  # type: ignore
+            cls_type = cls._type_
 
         return Pointer._norm_ptr(cls_type)  # type: ignore
 
