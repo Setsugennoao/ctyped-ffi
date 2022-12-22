@@ -1,18 +1,24 @@
 
-import ctypes
 from ctypes import (
     CFUNCTYPE, POINTER, PYFUNCTYPE, Array, Structure, _SimpleCData, addressof, c_char, c_char_p, c_double, c_float,
     c_int, c_int8, c_int16, c_int32, c_int64, c_longlong, c_short, c_size_t, c_ssize_t, c_ubyte, c_uint, c_uint8,
-    c_uint16, c_uint32, c_uint64, c_ulonglong, c_ushort, c_void_p, memmove, pythonapi, sizeof, string_at
+    c_uint16, c_uint32, c_uint64, c_ulonglong, c_ushort, c_void_p, cast, memmove, memset
 )
 from ctypes import py_object as py_object_t
+from ctypes import pythonapi, sizeof
 from functools import lru_cache
 from types import MappingProxyType
-from typing import TYPE_CHECKING, Any, cast
+from typing import TYPE_CHECKING, Any
+from typing import cast as t_cast
+
+if TYPE_CHECKING:
+    from ctypes import string_at
+else:
+    from _ctypes import _string_at_addr
+    string_at = PYFUNCTYPE(py_object_t, c_void_p, c_int)(_string_at_addr)
 
 from .string import String
 from .types import C_T_CDB, CDataBase
-
 
 __all__ = [
     'c_void_p', 'VoidReturn',
@@ -41,7 +47,7 @@ __all__ = [
 
     'get_stgdict_of_type', 'make_callback_returnable',
 
-    'memmove', 'addressof'
+    'memmove', 'memset', 'addressof'
 ]
 
 
@@ -144,7 +150,7 @@ ffi_type._fields_ = [
 ]
 
 
-None_ptr = ctypes.cast(id(None), POINTER(PyObject))
+None_ptr = cast(id(None), POINTER(PyObject))
 
 # https://github.com/python/cpython/blob/main/Modules/_ctypes/ctypes.h#L31-L32
 GETFUNC = PYFUNCTYPE(py_object, c_void_p, c_ssize_t)
@@ -226,8 +232,8 @@ def _check_size(func_name: str, ctype: CDataBaseFix, size: c_size_t) -> int:
     return ctype._actual_size
 
 
-def make_callback_returnable(ctype: CDataBase) -> CDataBaseFix:
-    ctypef = cast(CDataBaseFix, ctype)
+def make_callback_returnable(ctype: CDataBase, strict: bool = False) -> CDataBaseFix:
+    ctypef = t_cast(CDataBaseFix, ctype)
 
     if hasattr(ctype, '_ctypes_patch_getfunc'):
         return ctypef
@@ -235,23 +241,38 @@ def make_callback_returnable(ctype: CDataBase) -> CDataBaseFix:
     stgdict_c = StgDictObject.from_address(get_stgdict_of_type(ctypef))
 
     for func_type in {'getfunc', 'setfunc'}:
-        if ctypes.cast(getattr(stgdict_c, func_type), c_void_p).value is not None:
+        if cast(getattr(stgdict_c, func_type), c_void_p).value is not None:
             raise ValueError(
                 f'The ctype {ctypef.__module__}.{ctypef.__name__} already has a {func_type}'
             )
 
-    @GETFUNC  # type: ignore
-    def getfunc(ptr: c_void_p, size: c_size_t) -> py_object:
-        return ctype.from_buffer_copy(string_at(ptr, _check_size('getfunc', ctype, size)))  # type: ignore
+    v_none_p: c_void_p = cast(None_ptr, c_void_p).value  # type: ignore
+    Py_IncRef = pythonapi.Py_IncRef.__call__
 
-    @SETFUNC  # type: ignore
-    def setfunc(ptr: c_void_p, value: py_object, size: c_size_t) -> c_void_p:
-        memmove(ptr, addressof(value), _check_size('setfunc', ctype, size))
-        pythonapi.Py_IncRef(None_ptr)
+    if strict:
+        @GETFUNC  # type: ignore
+        def getfunc(ptr: c_void_p, size: c_size_t) -> py_object:
+            return ctypef.from_buffer_copy(string_at(ptr, _check_size('getfunc', ctypef, size)))  # type: ignore
 
-        return ctypes.cast(None_ptr, c_void_p).value  # type: ignore
+        @SETFUNC  # type: ignore
+        def setfunc(ptr: c_void_p, value: py_object, size: c_size_t) -> c_void_p:
+            memmove(ptr, addressof(value), _check_size('setfunc', ctypef, size))
+            Py_IncRef(None_ptr)
 
-    ctypef._actual_size = sizeof(ctype)
+            return v_none_p
+    else:
+        @GETFUNC  # type: ignore
+        def getfunc(ptr: c_void_p, _: c_size_t) -> py_object:
+            return ctypef.from_buffer_copy(string_at(ptr, ctypef._actual_size))  # type: ignore
+
+        @SETFUNC  # type: ignore
+        def setfunc(ptr: c_void_p, value: py_object, _: c_size_t) -> c_void_p:
+            memmove(ptr, addressof(value), ctypef._actual_size)
+            Py_IncRef(None_ptr)
+
+            return v_none_p
+
+    ctypef._actual_size = sizeof(ctypef)
     ctypef._ctypes_patch_getfunc = getfunc
     ctypef._ctypes_patch_setfunc = setfunc
 
