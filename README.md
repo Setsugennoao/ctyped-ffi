@@ -5,8 +5,7 @@
 
 Wrapper around ctypes for creating typed foreign function interfaces built upon libraries
 
-You can find support in the [IEW Discord server](https://discord.gg/qxTxVJGtst).
-<br><br>
+For support you can check out the [JET Discord server](https://discord.gg/XTpc6Fa9eB). <br><br> <br><br>
 ## How to install
 
 Install `ctypedffi` with the following command:
